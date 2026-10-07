@@ -1,0 +1,35 @@
+# Python bytecode, test/coverage output, and build artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Runtime logs and local credentials
+*.log
+.env
+.env.*
+!.env.example
+
+# Virtual environments and editor/OS files
+venv/
+.venv/
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+
+# Local browser/runtime artifacts
+*browser-profile*/
+*edge-profile*/
+
+# Official annual-statistics source PDFs remain local-only.
+data/raw/taichung/official_annual_crime/*.pdf
+
+# Keep source, tests, metadata, reports, and required processed/runtime data.

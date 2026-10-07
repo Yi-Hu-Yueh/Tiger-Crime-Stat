@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="臺灣 2016–2025 年縣市與鄉鎮市區犯罪統計儀表板">
+  <title>臺灣犯罪統計｜2016–2025</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231d65a8'/%3E%3Cpath d='M8 9h16v4H8zm0 7h16v3H8zm0 6h10v3H8z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div><p class="eyebrow">Tiger-Crime-Stat</p><h1>臺灣犯罪統計</h1><p>2016–2025｜縣市與鄉鎮市區統計</p></div>
+      <div class="source-ribbon"><span></span>行政區資料為警政署季度初步案件資料</div>
+      <span class="sr-only">相容舊版：臺中市犯罪統計</span>
+    </header>
+
+    <section class="filter-bar" aria-label="資料篩選">
+      <details class="multi-picker" id="countyPicker">
+        <summary><span>縣市（多選）</span><strong id="countySummary">臺中市</strong></summary>
+        <div class="multi-menu county-menu" id="countyChoices" role="group" aria-label="縣市多選">
+          <label class="multi-all"><input id="allCounties" type="checkbox"> 全選 22 縣市</label>
+        </div>
+      </details>
+      <details class="multi-picker" id="yearPicker">
+        <summary><span>年份（多選）</span><strong id="yearSummary">2025</strong></summary>
+        <div class="multi-menu year-menu" id="yearChoices" role="group" aria-label="年份多選">
+          <label class="multi-all"><input id="allYears" type="checkbox"> 全選 2016–2025</label>
+        </div>
+      </details>
+      <details class="month-picker" id="monthPicker">
+        <summary><span>月份</span><strong id="monthSummary">全選（12 個月）</strong></summary>
+        <div class="month-menu" id="monthChoices" role="group" aria-label="月份多選">
+          <label class="month-all"><input id="allMonths" type="checkbox" checked> 全選</label>
+        </div>
+      </details>
+      <label class="metric-filter"><span>指標</span><select id="metricSelect" aria-label="選擇指標"><option value="rate">每十萬人口案件數</option><option value="count">案件數</option></select></label>
+      <div class="context" id="currentContext">載入中…</div>
+      <section class="crime-section"><div class="crime-selection-heading"><div><div class="section-label">已選案類</div><div id="selectedCrimeChips" class="selected-crime-chips" aria-live="polite"></div><strong id="crimeSummary" class="sr-only">全部案類（8）</strong></div><button id="crimePickerToggle" class="crime-picker-toggle" type="button" aria-expanded="false" aria-controls="crimeTiles">選擇案類</button></div><div id="crimeTiles" class="crime-tiles" role="group" aria-label="案類多選" hidden></div></section>
+    </section>
+
+    <div id="errorState" class="error" hidden></div>
+    <main class="main-content">
+      <article class="map-panel panel">
+        <div class="workspace-tabs" role="tablist" aria-label="左側工作區">
+          <button id="workspaceMapTab" class="workspace-tab" type="button" role="tab" aria-selected="true" aria-controls="workspaceMapPanel" tabindex="0">行政區地圖</button>
+          <button id="workspaceLlmTab" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="workspaceLlmPanel" tabindex="-1">LLM 對話</button>
+        </div>
+        <section id="workspaceMapPanel" class="workspace-panel map-workspace" role="tabpanel" aria-labelledby="workspaceMapTab">
+        <div class="panel-title"><div><p>行政區分布</p><h2 id="mapTitle">載入中…</h2></div><div class="legend"><span><i class="low"></i>較低</span><span><i class="high"></i>較高</span><span><i class="partial"></i>部分</span><span><i class="none"></i>無資料</span></div></div>
+        <div class="quality-banner" id="qualityBanner" aria-live="polite">載入資料品質…</div>
+        <div class="map-stage">
+          <div id="mapViewport" class="map-viewport" aria-label="可縮放與捲動的地圖視窗">
+            <div id="mapCanvas" class="map-canvas">
+              <svg id="districtMap" viewBox="0 0 820 560" role="img" aria-label="縣市行政區互動地圖">
+                <defs>
+                  <pattern id="noDataPattern" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#e5e7eb"/><line y2="9" stroke="#94a3b8" stroke-width="3"/></pattern>
+                  <pattern id="partialPattern" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#fff7ed"/><line y2="9" stroke="#f59e0b" stroke-width="3"/></pattern>
+                </defs>
+                <g id="mapFeatures"></g>
+              </svg>
+            </div>
+          </div>
+          <div class="map-zoom-status"><span id="mapZoomValue">100%</span><button id="mapZoomReset" type="button" title="重設地圖縮放">重設</button></div>
+          <div id="mapTooltip" class="tooltip" hidden></div>
+        </div>
+        <p class="map-note">色彩只表示目前選取指標，不代表治安、安全或危險評等。</p>
+        </section>
+        <section id="workspaceLlmPanel" class="workspace-panel llm-workspace" role="tabpanel" aria-labelledby="workspaceLlmTab" hidden>
+          <div class="chat-heading"><div><h2>AI 犯罪統計助理</h2><p>NVIDIA AI｜問題、篩選範圍與查詢結果會傳送至 NVIDIA。請勿輸入個資或密鑰於對話訊息。</p></div><button id="clearConversation" type="button">清除對話</button></div>
+          <div class="api-key-row">
+            <label for="nvidiaApiKey">NVIDIA API Key</label>
+            <input id="nvidiaApiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="512" placeholder="nvapi-…" aria-describedby="nvidiaApiKeyStatus">
+            <button id="toggleNvidiaApiKey" type="button" aria-controls="nvidiaApiKey" aria-pressed="false">顯示</button>
+            <span id="nvidiaApiKeyStatus" class="api-key-status" role="status">未設定</span>
+            <div class="model-selector">
+              <label for="nvidiaModel">Model</label>
+              <select id="nvidiaModel" aria-describedby="nvidiaModelStatus">
+                <option value="z-ai/glm-5.3-flash" selected>GLM-5.3-Flash</option>
+                <option value="z-ai/glm-5.3">GLM-5.3</option>
+              </select>
+              <span id="nvidiaModelStatus" class="model-status" role="status">使用模型：GLM-5.3-Flash</span>
+            </div>
+          </div>
+          <div id="chatHistory" class="chat-history" role="log" aria-label="對話紀錄" aria-live="polite" aria-relevant="additions" tabindex="0"><p id="chatEmpty" class="chat-empty">可詢問目前行政區的案件數、趨勢或重大事件背景。AI 回答仍應核對資料品質與來源。</p></div>
+          <form id="chatForm" class="chat-composer">
+            <p id="chatStatus" class="chat-status" role="status" hidden>AI 分析中…</p>
+            <p id="chatError" class="chat-error" role="alert" hidden></p>
+            <label for="chatInput">輸入訊息</label>
+            <textarea id="chatInput" rows="2" maxlength="4000" placeholder="輸入問題；Enter 傳送，Shift+Enter 換行"></textarea>
+            <button id="sendChatMessage" type="submit">傳送</button>
+          </form>
+        </section>
+      </article>
+
+      <aside class="detail-panel panel">
+        <div id="detailScopeHeader" class="detail-scope-header" aria-label="目前顯示範圍" aria-live="polite">載入目前範圍…</div>
+        <section class="detail-section">
+          <div class="panel-title compact"><div><p>行政區詳細資料</p><h2 id="detailTitle">—</h2></div><div class="detail-badges"><span id="pinBadge" class="badge pinned-badge" hidden>已固定</span><button id="unpinDistrict" class="unpin-district" type="button" hidden>解除固定</button><span id="qualityBadge" class="badge">—</span></div></div>
+          <p class="summary-period" id="summaryPeriod">摘要統計：—</p>
+          <p class="detail-context" id="detailContext">—</p>
+          <div class="primary-stats"><article><span>案件數</span><strong id="detailCount">—</strong><small>選取期間案件數</small><b id="countRank">—</b></article><article><span id="detailRateLabel">每十萬人口案件數</span><strong id="detailRate">—</strong><small>所選人口分母之加權指標</small><b id="rateRank">—</b></article></div>
+          <p id="statisticalSummary" class="statistical-summary">—</p>
+          <details id="calculationDetails" class="calculation-details"><summary>指標計算說明</summary><div id="calculationContent"><div><span id="detailPopulationLabel">年底戶籍人口</span>：<strong id="detailPopulation">—</strong></div><div id="calculationBreakdown"></div></div></details>
+          <div class="quality-status" id="qualityStatus"><span>資料品質：<strong id="detailQuality">—</strong></span><i aria-hidden="true">｜</i><span>可分配率：<strong id="detailAssignment">—</strong></span><i aria-hidden="true">｜</i><span>來源涵蓋：<strong id="detailCoverage">—</strong></span><details class="quality-details"><summary>查看說明</summary><p>品質警告會保留於下方；「完整」仍僅表示目前資料來源與行政區分配狀態。</p></details></div>
+          <div id="detailWarning" class="warning"></div>
+        </section>
+        <section class="trend-section"><div class="trend-section-heading"><div><div class="section-label">長期趨勢：2016–2025</div><strong>完整年度序列；圖中數字為各年度案件數</strong></div><span>事件位於獨立事件帶；異常標記附著於資料點</span></div><div class="context-toggles" role="group" aria-label="趨勢解讀標記"><label><input id="eventMarkersToggle" type="checkbox" checked> 重大事件標記</label><label><input id="anomalyMarkersToggle" type="checkbox" checked> 異常波動標記</label></div><div id="crimeTrendScroll" class="crime-trend-scroll"><div id="trendStatus" class="trend-status loading" role="status" aria-live="polite">載入趨勢資料中…</div><div id="crimeTrendCharts" class="crime-trend-charts"></div></div><div id="anomalyExplanation" class="anomaly-explanation" aria-live="polite"><h3>異常波動與重大事件說明</h3><p>點選圖中的異常波動或重大事件標記以查看說明。</p></div><div id="previousYear" class="previous-year"></div></section>
+      </aside>
+      <div id="verticalSplitter" class="splitter splitter-vertical" role="separator" aria-label="調整地圖與詳細資料寬度" aria-orientation="vertical" aria-valuemin="30" aria-valuemax="70" tabindex="0">
+        <div class="splitter-controls splitter-controls-vertical" aria-label="左右窗格顯示控制">
+          <button id="maximizeLeft" class="splitter-control" type="button" title="放大左側工作區／還原" aria-label="放大左側工作區或還原左右窗格" aria-pressed="false">◀</button>
+          <button id="maximizeRight" class="splitter-control" type="button" title="放大詳細資料／還原" aria-label="放大詳細資料或還原左右窗格" aria-pressed="false">▶</button>
+        </div>
+      </div>
+    </main>
+
+    <div id="horizontalSplitter" class="splitter splitter-horizontal" role="separator" aria-label="調整上方地圖與下方比較區高度" aria-orientation="horizontal" aria-valuemin="45" aria-valuemax="75" tabindex="0">
+      <div class="splitter-controls splitter-controls-horizontal" aria-label="上下窗格顯示控制">
+        <button id="maximizeUp" class="splitter-control" type="button" title="放大上方區域／還原" aria-label="放大上方地圖與詳細資料或還原" aria-pressed="false">▲</button>
+        <button id="maximizeDownSplitter" class="splitter-control" type="button" title="放大下方區域／還原" aria-label="放大下方比較區或還原" aria-pressed="false">▼</button>
+      </div>
+    </div>
+
+    <section class="bottom-panel panel">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="comparison" role="tab">各行政區比較</button>
+        <button class="tab" data-tab="district-trends" role="tab">各行政區趨勢圖</button>
+        <button class="tab" data-tab="official" role="tab">縣市年度正式統計</button>
+        <button class="tab" data-tab="quality" role="tab">資料品質說明</button>
+        <button class="tab" data-tab="methodology" role="tab">資料來源與統計說明</button>
+        <button id="maximizeDown" class="lower-maximize-control" type="button" title="放大下方比較區／還原水平分割" aria-label="放大下方比較區或還原水平分割" aria-pressed="false">▼ 放大下方</button>
+      </div>
+      <div class="tab-body">
+        <div id="tab-comparison" class="tab-pane active">
+          <div class="table-tools"><span id="tableSummary">—</span><label>排序 <select id="sortSelect"><option value="count">案件數</option><option value="rate">每十萬人口案件數</option><option value="district">行政區</option></select></label></div>
+          <div class="table-scroll"><table><thead><tr><th>排名</th><th>縣市</th><th>行政區</th><th>案件數</th><th id="tablePopulationLabel">人口</th><th id="tableRateLabel">每十萬人口案件數</th><th>案件數排名</th><th>案件率排名</th><th>可分配率</th><th>資料品質</th></tr></thead><tbody id="districtTableBody"></tbody></table></div>
+        </div>
+        <div id="tab-district-trends" class="tab-pane district-trends-pane"><div class="district-trend-toolbar"><strong id="districtTrendSummary">載入行政區趨勢…</strong><span>2016–2025 完整年度序列</span></div><div id="districtTrendScroll" class="district-trend-scroll"><div id="districtTrendGrid" class="district-trend-grid"></div></div></div>
+        <div id="tab-official" class="tab-pane"><div id="officialContent" class="tab-copy"></div></div>
+        <div id="tab-quality" class="tab-pane"><div class="tab-copy"><h3>資料品質狀態</h3><p><b>完整：</b>來源完整且全部案件可分配至行政區。 <b>分配不完整：</b>僅顯示已成功分配案件。 <b>無行政區分配：</b>不顯示區級數值與排名。 <b>部分來源：</b>不製造完整年度案件率與排名。 <b>未提供：</b>以「—」呈現。</p><p>案件數與案件率排名採競賽排名：同值同名次，下一名次依序位跳號。全數為有效零值時仍保留可重現名次，但不解讀為相對安全。</p></div></div>
+        <div id="tab-methodology" class="tab-pane"><div class="methodology tab-copy"><div><h3>資料來源</h3><ul><li>行政區犯罪資料：內政部警政署（資料集代碼：14200）</li><li>年度正式基準：內政部警政署刑事警察局年度刑案統計</li><li>人口：內政部戶政司（資料集代碼：8410）</li><li>界線：內政部國土測繪中心（資料集代碼：7441）</li></ul></div><div><h3>統計限制</h3><ul><li>「全部案類」係指資料集代碼 14200 所提供之 8 類案件加總，並非所有刑事案件種類。</li><li>行政區統計為初步資料，正式縣市年度總數可能不同。</li><li>缺少行政區的案件不推估、不補值；正式總數也不重新分配。</li><li>人口分母為年底戶籍人口；多年度加權指標以所選期間案件數合計除以各年度人口合計後乘以 100,000。</li><li>分配不完整時，行政區零值不證明全縣市零案件。</li><li>完整行政區層級「暴力犯罪」彙總無法取得。</li></ul></div></div></div>
+      </div>
+    </section>
+  </div>
+  <script src="/static/map_projection.js" defer></script>
+  <script src="/static/map_navigation.js" defer></script>
+  <script src="/static/selection_state.js" defer></script>
+  <script src="/static/crime_selection.js" defer></script>
+  <script src="/static/layout_state.js" defer></script>
+  <script src="/static/dashboard_actions.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
