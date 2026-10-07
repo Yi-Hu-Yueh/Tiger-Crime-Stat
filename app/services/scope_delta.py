@@ -3,7 +3,15 @@ from dataclasses import dataclass
 import re
 import unicodedata
 
-from app.services.chat_router import ALL_MONTHS, ALL_YEARS, THEFT_CRIME_TYPES, _entities, _periods
+from app.services.chat_router import (
+    ALL_MONTHS,
+    ALL_YEARS,
+    DISTRICT_ALIAS_INDEX,
+    THEFT_CRIME_TYPES,
+    _district_entities,
+    _entities,
+    _periods,
+)
 from app.services.dashboard_actions import UpdateView, validate_actions
 from app.services.data_service import service
 
@@ -36,7 +44,16 @@ def _extract(message, scope):
         explicit.add("months")
 
     text, counties = _entities(text, service.county_districts)
-    text, districts = _entities(text, {district for values in service.county_districts.values() for district in values})
+    previous = scope.get("current_district")
+    selected_counties = list(scope["selected_counties"])
+    text, districts, used_district_alias, ambiguous_district_alias = _district_entities(
+        text,
+        explicit_counties=counties,
+        selected_counties=selected_counties,
+        current_district=previous,
+    )
+    if ambiguous_district_alias:
+        return None
     if counties:
         explicit.add("counties")
     if districts:
@@ -83,8 +100,6 @@ def _extract(message, scope):
     if not explicit:
         return None
 
-    previous = scope.get("current_district")
-    selected_counties = list(scope["selected_counties"])
     if counties:
         resolved_counties = counties
         if districts:
@@ -153,6 +168,8 @@ def _extract(message, scope):
         r"有幾件|幾件|是多少|多少|案件數|件數|案件|幫我看|改看|改成|查詢|切換|顯示|開啟|比較|排名|地圖|"
         r"請問|請|查|看|跟|和|與|及|年|月|的|有|嗎|全年", "", text)
     clean_request = not bool(re.sub(r"[?？。，、,\s]", "", residual))
+    if used_district_alias and not clean_request:
+        return None
     return ScopeDelta(view, tuple(actions), frozenset(explicit), clean_request)
 
 
@@ -160,6 +177,7 @@ def conversation_scope(history, scope):
     """Replay only validated user deltas; assistant prose is never scope evidence."""
     result = dict(scope)
     geography_names = set(service.county_districts) | {district for values in service.county_districts.values() for district in values}
+    geography_names.update(DISTRICT_ALIAS_INDEX)
     for turn in history:
         if turn.get("role") != "user":
             continue

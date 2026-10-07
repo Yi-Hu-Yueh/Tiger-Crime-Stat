@@ -2,7 +2,7 @@
 import re
 import unicodedata
 
-from app.services.chat_router import ALL_MONTHS, ALL_YEARS, THEFT_CRIME_TYPES, RoutePlan, ToolQuery, _entities, _periods, route_message
+from app.services.chat_router import ALL_MONTHS, ALL_YEARS, THEFT_CRIME_TYPES, RoutePlan, ToolQuery, _district_entities, _entities, _periods, route_message
 from app.services.dashboard_actions import UpdateView, view_actions
 from app.services.data_service import service
 from app.services.scope_delta import conversation_scope as resolve_conversation_scope, extract_scope_delta
@@ -22,7 +22,15 @@ def _command(message, scope):
         return None
     text, years, months = periods
     text, counties = _entities(text, service.county_districts)
-    text, districts = _entities(text, {d for ds in service.county_districts.values() for d in ds})
+    previous = scope.get("current_district")
+    text, districts, _used_alias, ambiguous_alias = _district_entities(
+        text,
+        explicit_counties=counties,
+        selected_counties=scope.get("selected_counties") or [],
+        current_district=previous,
+    )
+    if ambiguous_alias:
+        return None
     aliases = {c: c for c in service.crime_types}
     aliases.update({"組織犯罪": "組織犯罪防制條例", "全部案類": "all"})
     text, crime_names = _entities(text, aliases)
@@ -48,7 +56,6 @@ def _command(message, scope):
         return None
     if not (years or months or counties or districts or crimes or re.search(r"趨勢|排名|地圖|背景|案件率|發生率|案件數|每十萬人口", text)):
         return None
-    previous = scope.get("current_district")
     if counties:
         # Explicit county-only requests must not retain a district from older context.
         resolved_counties, resolved_districts = counties, districts

@@ -39,6 +39,57 @@ def _entities(text, names):
     return re.sub(pattern, consume, text), matches
 
 
+DISTRICT_SUFFIXES = frozenset({"區", "鄉", "鎮", "市"})
+
+
+def _build_district_alias_index():
+    aliases = {}
+    for county, districts in service.county_districts.items():
+        for district in districts:
+            if len(district) <= 2 or district[-1] not in DISTRICT_SUFFIXES:
+                continue
+            alias = district[:-1]
+            aliases.setdefault(alias, []).append((county, district))
+    return {
+        alias: tuple(dict.fromkeys(candidates))
+        for alias, candidates in aliases.items()
+    }
+
+
+DISTRICT_ALIAS_INDEX = _build_district_alias_index()
+
+
+def _district_entities(text, *, explicit_counties=(), selected_counties=(), current_district=None):
+    """Extract canonical districts or one validated, context-safe alias.
+
+    The alias index is derived exclusively from canonical geography. Suffixless
+    aliases are accepted only when they resolve to exactly one district inside
+    the explicitly named or currently active county scope.
+    """
+    text, districts = _entities(text, {name for names in service.county_districts.values() for name in names})
+    if districts:
+        return text, districts, False, False
+
+    text, aliases = _entities(text, DISTRICT_ALIAS_INDEX)
+    if not aliases:
+        return text, [], False, False
+    if len(aliases) != 1:
+        return text, [], True, True
+
+    candidates = DISTRICT_ALIAS_INDEX[aliases[0]]
+    explicit = set(explicit_counties)
+    if explicit:
+        matches = [candidate for candidate in candidates if candidate[0] in explicit]
+    elif current_district:
+        matches = [candidate for candidate in candidates if candidate[0] == current_district["county"]]
+    else:
+        selected = set(selected_counties)
+        matches = [candidate for candidate in candidates if candidate[0] in selected]
+    if len(matches) != 1:
+        return text, [], True, True
+    return text, [matches[0][1]], True, False
+
+
 def _periods(text):
     """Reject mixed year-specific month windows; do not create Cartesian guesses."""
     if re.search(r"(?:19|20)\d{2}年?\D*?\d{1,2}月.*(?:19|20)\d{2}", text):
@@ -96,6 +147,7 @@ def conversation_geography(history, scope):
     """
     current, ambiguous = None, False
     names = set(service.county_districts) | {d for ds in service.county_districts.values() for d in ds}
+    names.update(DISTRICT_ALIAS_INDEX)
     for turn in history:
         if turn.get("role") != "user":
             continue
@@ -143,7 +195,16 @@ def route_message(message: str, scope: dict, history=()) -> RoutePlan | None:
     years = explicit_years or list(scope["selected_years"])
     months = explicit_months or list(scope["selected_months"])
     text, counties = _entities(text, service.county_districts)
-    text, districts = _entities(text, {name for names in service.county_districts.values() for name in names})
+    recent, ambiguous = conversation_geography(history, scope) if history else (None, False)
+    current = recent or (None if ambiguous else scope.get("current_district"))
+    text, districts, _used_alias, ambiguous_alias = _district_entities(
+        text,
+        explicit_counties=counties,
+        selected_counties=scope.get("selected_counties") or [],
+        current_district=current,
+    )
+    if ambiguous_alias:
+        return None
     if len(counties) > 1 or len(districts) > 1:
         return None
     crime_aliases = {name: name for name in service.crime_types}
@@ -163,8 +224,6 @@ def route_message(message: str, scope: dict, history=()) -> RoutePlan | None:
     crimes = crimes or list(scope["selected_crime_types"])
 
     # Explicit geography overrides UI selections, but never invents a district.
-    recent, ambiguous = conversation_geography(history, scope) if history else (None, False)
-    current = recent or (None if ambiguous else scope.get("current_district"))
     county, district = (counties[0] if counties else None), (districts[0] if districts else None)
     if official:
         if district or "這區" in text or "目前行政區" in text:

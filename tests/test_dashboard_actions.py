@@ -10,7 +10,7 @@ import pytest
 
 from app.services.dashboard_actions import UpdateView, validate_actions, view_actions
 from app.services.chat_answers import crime_label
-from app.services.chat_router import THEFT_CRIME_TYPES, route_message
+from app.services.chat_router import DISTRICT_ALIAS_INDEX, THEFT_CRIME_TYPES, route_message
 from app.services.dashboard_router import route_dashboard_message
 from app.services.data_service import service
 from app.services.llm_service import ChatError, ChatRequest, LLMService, contains_model_protocol
@@ -48,6 +48,82 @@ def test_generic_scope_delta_matrix(message, district, years, crimes):
     assert delta.actions[1] == {"type": "select_district", "county": "臺中市", "district": district}
     plan = route_dashboard_message(message, DELTA_SCOPE, delta=delta)
     assert plan is not None and plan.dashboard_actions == delta.actions
+
+
+ALIAS_SCOPE = {
+    **ALL_SCOPE,
+    "selected_years": [2025],
+    "current_district": {"county": "臺中市", "district": "和平區"},
+}
+
+
+@pytest.mark.parametrize(("message", "district", "years"), [
+    ("清水 2025", "清水區", [2025]),
+    ("北屯 2025", "北屯區", [2025]),
+    ("北屯 2024", "北屯區", [2024]),
+    ("清水區 2025", "清水區", [2025]),
+])
+def test_suffixless_district_alias_overrides_previous_pin(message, district, years):
+    plan = route_dashboard_message(message, ALIAS_SCOPE)
+    assert plan is not None
+    action = plan.dashboard_actions[0]
+    assert action["counties"] == ["臺中市"]
+    assert action["districts"] == [district]
+    assert action["years"] == years
+    assert plan.dashboard_actions[1] == {
+        "type": "select_district", "county": "臺中市", "district": district,
+    }
+
+
+def test_suffixless_alias_preserves_unmentioned_scope_dimensions():
+    scope = {
+        **ALIAS_SCOPE,
+        "selected_years": [2023],
+        "selected_months": [2, 4, 6],
+        "selected_crime_types": ["毒品"],
+        "metric": "rate",
+    }
+    action = route_dashboard_message("西屯", scope).dashboard_actions[0]
+    assert action == {
+        "type": "set_dashboard_scope",
+        "counties": ["臺中市"],
+        "districts": ["西屯區"],
+        "years": [2023],
+        "months": [2, 4, 6],
+        "crime_types": ["毒品"],
+        "metric": "rate",
+    }
+
+
+def test_district_aliases_are_derived_from_canonical_geography():
+    assert DISTRICT_ALIAS_INDEX["清水"] == (("臺中市", "清水區"),)
+    canonical = {
+        (county, district)
+        for county, districts in service.county_districts.items()
+        for district in districts
+    }
+    assert all(
+        district[:-1] == alias and (county, district) in canonical
+        for alias, candidates in DISTRICT_ALIAS_INDEX.items()
+        for county, district in candidates
+    )
+
+
+def test_ambiguous_suffixless_alias_never_mutates_dashboard():
+    scope = {**ALIAS_SCOPE, "selected_counties": ["臺北市", "基隆市"], "current_district": None}
+    assert len(DISTRICT_ALIAS_INDEX["中正"]) > 1
+    assert extract_dashboard_actions("中正 2025", scope) == ()
+    assert route_dashboard_message("中正 2025", scope) is None
+
+
+def test_answer_query_and_dashboard_action_use_identical_alias_resolution():
+    plan = route_dashboard_message("清水 2025", ALIAS_SCOPE)
+    query = plan.tools[0].arguments
+    action = plan.dashboard_actions[0]
+    assert query["counties"] == action["counties"] == ["臺中市"]
+    assert query["districts"] == action["districts"] == ["清水區"]
+    direct = route_message("2025 年清水住宅竊盜有幾件？", ALIAS_SCOPE)
+    assert direct.tools[0].arguments["districts"] == ["清水區"]
 
 
 def test_scope_delta_supports_county_and_metric_without_prefixes():
