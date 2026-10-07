@@ -68,7 +68,7 @@
         <p class="map-note">色彩只表示目前選取指標，不代表治安、安全或危險評等。</p>
         </section>
         <section id="workspaceLlmPanel" class="workspace-panel llm-workspace" role="tabpanel" aria-labelledby="workspaceLlmTab" hidden>
-          <div class="chat-heading"><div><h2>AI 犯罪統計助理</h2><p>NVIDIA AI｜問題、篩選範圍與查詢結果會傳送至 NVIDIA。請勿輸入個資或密鑰於對話訊息。</p></div><button id="clearConversation" type="button">清除對話</button></div>
+          <div class="chat-heading"><div><h2>AI 犯罪統計助理</h2><p class="api-key-help">NVIDIA API Key 申請：<a href="https://build.nvidia.com/" target="_blank" rel="noopener noreferrer">前往 NVIDIA Build 免費申請 API Key</a><br>GLM-5.3-Flash / GLM-5.3 目前提供 Free API Endpoint；實際額度與政策依 NVIDIA 官方為準。<br><strong>不要將個人 API Key 貼到對話訊息中。</strong></p></div><button id="clearConversation" type="button">清除對話</button></div>
           <div class="api-key-row">
             <label for="nvidiaApiKey">NVIDIA API Key</label>
             <input id="nvidiaApiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="512" placeholder="nvapi-…" aria-describedby="nvidiaApiKeyStatus">

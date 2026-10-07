@@ -82,7 +82,10 @@ def test_placeholder_removed_and_accessible_loading_error_markup():
     assert "LLM 功能尚未啟用" not in html and "本機預覽" not in html
     assert 'id="chatStatus"' in html and "AI 分析中…" in html
     assert 'id="chatError"' in html and 'role="alert"' in html
-    assert "NVIDIA" in html and "請勿輸入個資或密鑰" in html
+    assert "NVIDIA API Key 申請：" in html
+    assert '<a href="https://build.nvidia.com/" target="_blank" rel="noopener noreferrer">前往 NVIDIA Build 免費申請 API Key</a>' in html
+    assert "GLM-5.3-Flash / GLM-5.3 目前提供 Free API Endpoint；實際額度與政策依 NVIDIA 官方為準。" in html
+    assert "不要將個人 API Key 貼到對話訊息中。" in html
 
 
 def test_loading_then_bubbles_and_internal_scroll(chat_ui):
