@@ -173,9 +173,24 @@ def test_frontend_root_and_assets_are_usable_without_a_build_step():
     response = CLIENT.get("/")
     assert response.status_code == 200
     assert "臺中市犯罪統計" in response.text
+    assert '<div class="header-copy"><h1>臺灣犯罪統計</h1><div class="header-author-line">' in response.text
+    assert "樂以虎" in response.text and "youtransgame@gmail.com" in response.text and "使用Codex" in response.text
+    assert '<a href="mailto:youtransgame@gmail.com">youtransgame@gmail.com</a>' in response.text
+    github_url = "https://github.com/Yi-Hu-Yueh/Tiger-Crime-Stat?tab=readme-ov-file"
+    assert f'<a class="header-github" href="{github_url}" target="_blank" rel="noopener noreferrer">{github_url}</a>' in response.text
+    assert '<div class="header-context"><p class="eyebrow">Tiger-Crime-Stat</p><p class="header-subtitle">2016–2025｜縣市與鄉鎮市區統計</p></div>' in response.text
     assert "行政區資料為警政署季度初步案件資料" in response.text
     assert "資料來源與統計說明" in response.text
-    assert CLIENT.get("/static/styles.css").status_code == 200
+    styles = CLIENT.get("/static/styles.css")
+    assert styles.status_code == 200
+    assert ".app-header{position:relative" in styles.text
+    assert ".header-copy{position:absolute;left:50%" in styles.text and "transform:translateX(-50%)" in styles.text
+    assert ".header-author-line{display:flex" in styles.text
+    assert "justify-content:center" in styles.text and "flex-wrap:nowrap" in styles.text and "white-space:nowrap" in styles.text
+    assert ".app-header h1{font-size:21px" in styles.text
+    assert ".app-header .header-author{font-size:14px" in styles.text
+    assert ".app-header .header-github{font-size:9px" in styles.text
+    assert "overflow-x:auto" in styles.text and "html,body{height:auto;overflow:auto}" in styles.text
     assert CLIENT.get("/static/app.js").status_code == 200
 
 

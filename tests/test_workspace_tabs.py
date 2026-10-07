@@ -38,11 +38,20 @@ def test_workspace_markup_defaults_and_accessibility():
     assert "hidden" not in elements["workspaceMapPanel"]
     assert "hidden" in elements["workspaceLlmPanel"]
     assert 'role="tablist" aria-label="左側工作區"' in html
-    assert "行政區地圖" in html and "LLM 對話" in html
+    assert "行政區地圖" in html and "LLM 對話" not in html
+    assert '<span class="workspace-ai-label">AI</span> 對話' in html
     assert "AI 犯罪統計助理" in html
     assert elements["chatHistory"]["role"] == "log"
     assert elements["chatInput"]["tag"] == "textarea"
+    assert '>清水 2025</textarea>' in html
     assert elements["sendChatMessage"]["type"] == "submit"
+    css = (STATIC / "styles.css").read_text(encoding="utf-8")
+    assert ".workspace-ai-label{color:#b42318}" in css
+    assert '.workspace-tab[aria-selected="true"] .workspace-ai-label' in css
+    assert ".chat-composer button{background:#b42318;color:#fff}" in css
+    assert ".chat-composer button:hover{background:#8f1c13}" in css
+    assert ".chat-composer button:focus-visible{outline:3px solid #fca5a5" in css
+    assert ".chat-composer button:disabled{background:#855b59;opacity:.65;cursor:wait}" in css
 
 
 @pytest.fixture(scope="module")

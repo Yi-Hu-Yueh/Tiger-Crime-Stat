@@ -11,7 +11,8 @@
 <body>
   <div class="app-shell">
     <header class="app-header">
-      <div><p class="eyebrow">Tiger-Crime-Stat</p><h1>臺灣犯罪統計</h1><p>2016–2025｜縣市與鄉鎮市區統計</p></div>
+      <div class="header-context"><p class="eyebrow">Tiger-Crime-Stat</p><p class="header-subtitle">2016–2025｜縣市與鄉鎮市區統計</p></div>
+      <div class="header-copy"><h1>臺灣犯罪統計</h1><div class="header-author-line"><span class="header-author">樂以虎 - <a href="mailto:youtransgame@gmail.com">youtransgame@gmail.com</a> - 使用Codex</span><a class="header-github" href="https://github.com/Yi-Hu-Yueh/Tiger-Crime-Stat?tab=readme-ov-file" target="_blank" rel="noopener noreferrer">https://github.com/Yi-Hu-Yueh/Tiger-Crime-Stat?tab=readme-ov-file</a></div></div>
       <div class="source-ribbon"><span></span>行政區資料為警政署季度初步案件資料</div>
       <span class="sr-only">相容舊版：臺中市犯罪統計</span>
     </header>
@@ -45,7 +46,7 @@
       <article class="map-panel panel">
         <div class="workspace-tabs" role="tablist" aria-label="左側工作區">
           <button id="workspaceMapTab" class="workspace-tab" type="button" role="tab" aria-selected="true" aria-controls="workspaceMapPanel" tabindex="0">行政區地圖</button>
-          <button id="workspaceLlmTab" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="workspaceLlmPanel" tabindex="-1">LLM 對話</button>
+          <button id="workspaceLlmTab" class="workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="workspaceLlmPanel" tabindex="-1"><span class="workspace-ai-label">AI</span> 對話</button>
         </div>
         <section id="workspaceMapPanel" class="workspace-panel map-workspace" role="tabpanel" aria-labelledby="workspaceMapTab">
         <div class="panel-title"><div><p>行政區分布</p><h2 id="mapTitle">載入中…</h2></div><div class="legend"><span><i class="low"></i>較低</span><span><i class="high"></i>較高</span><span><i class="partial"></i>部分</span><span><i class="none"></i>無資料</span></div></div>
@@ -68,7 +69,7 @@
         <p class="map-note">色彩只表示目前選取指標，不代表治安、安全或危險評等。</p>
         </section>
         <section id="workspaceLlmPanel" class="workspace-panel llm-workspace" role="tabpanel" aria-labelledby="workspaceLlmTab" hidden>
-          <div class="chat-heading"><div><h2>AI 犯罪統計助理</h2><p class="api-key-help">NVIDIA API Key 申請：<a href="https://build.nvidia.com/" target="_blank" rel="noopener noreferrer">前往 NVIDIA Build 免費申請 API Key</a><br>GLM-5.3-Flash / GLM-5.3 目前提供 Free API Endpoint；實際額度與政策依 NVIDIA 官方為準。<br><strong>不要將個人 API Key 貼到對話訊息中。</strong></p></div><button id="clearConversation" type="button">清除對話</button></div>
+          <div class="chat-heading"><div><h2>AI 犯罪統計助理</h2><p class="api-key-help">NVIDIA API Key 申請：<a class="nvidia-signup-link" href="https://build.nvidia.com/" target="_blank" rel="noopener noreferrer">前往 NVIDIA Build 免費申請 API Key</a><br>GLM-5.3-Flash / GLM-5.3 目前提供 Free API Endpoint；實際額度與政策依 NVIDIA 官方為準。<br><strong>不要將個人 API Key 貼到對話訊息中。</strong></p></div><button id="clearConversation" type="button">清除對話</button></div>
           <div class="api-key-row">
             <label for="nvidiaApiKey">NVIDIA API Key</label>
             <input id="nvidiaApiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="512" placeholder="nvapi-…" aria-describedby="nvidiaApiKeyStatus">
@@ -88,7 +89,7 @@
             <p id="chatStatus" class="chat-status" role="status" hidden>AI 分析中…</p>
             <p id="chatError" class="chat-error" role="alert" hidden></p>
             <label for="chatInput">輸入訊息</label>
-            <textarea id="chatInput" rows="2" maxlength="4000" placeholder="輸入問題；Enter 傳送，Shift+Enter 換行"></textarea>
+            <textarea id="chatInput" rows="2" maxlength="4000" placeholder="輸入問題；Enter 傳送，Shift+Enter 換行">清水 2025</textarea>
             <button id="sendChatMessage" type="submit">傳送</button>
           </form>
         </section>
